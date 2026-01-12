@@ -6,21 +6,16 @@ import {
   deleteAccount,
   updateAccount,
   getAccountByUsername,
+  getVipAccounts,
 } from "./accounts.controllers";
 
 const accountRoutes = Router();
 
-const accountsArray = accounts;
-
-interface Account {
-  id: number;
-  username: string;
-  funds: number;
-}
-
 accountRoutes.get("/", getAllAccounts);
 
 accountRoutes.post("/", createAccount);
+
+accountRoutes.get("/vip", getVipAccounts);
 
 accountRoutes.delete("/:id", deleteAccount);
 

@@ -1,94 +1,62 @@
 import { Request, Response } from "express";
 import { accounts } from "../../../data/accounts";
-import Account from "../../models/Account";
 
-export const getAllAccounts = async (req: Request, res: Response) => {
-  try {
-    const allAccounts = await Account.find().select("-createdAt -updatedAt");
-    res.status(200).json(allAccounts);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching accounts", error });
-  }
+export const getAllAccounts = (req: Request, res: Response) => {
+  res.status(200).json(accounts);
 };
 
-export const createAccount = async (req: Request, res: Response) => {
-  try {
-    const newAccount = new Account(req.body);
-    newAccount.funds = 0;
-    const savedAccount = await newAccount.save();
-    res.status(201).json(savedAccount);
-  } catch (error) {
-    res.status(500).json({ message: "Error creating account", error });
-  }
+export const createAccount = (req: Request, res: Response) => {
+  const newAccount = req.body;
+  newAccount.id = Date.now();
+  newAccount.funds = 0;
+  accounts.push(newAccount);
+  res.status(201).json(newAccount);
 };
 
-export const deleteAccount = async (req: Request, res: Response) => {
+export const deleteAccount = (req: Request, res: Response) => {
   const accountId = req.params.id;
 
-  try {
-    const account = await Account.findById(accountId);
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
-
-    await account.deleteOne();
-    res.status(204).json(account);
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting account", error });
+  const index = accounts.findIndex(
+    (account) => account.id === parseInt(accountId.toString())
+  );
+  if (index !== -1) {
+    const deletedAccount = accounts.splice(index, 1)[0];
+    res.status(200).json(deletedAccount);
+  } else {
+    res.status(404).json({ message: "Account not found" });
   }
 };
 
-export const updateAccount = async (req: Request, res: Response) => {
+export const updateAccount = (req: Request, res: Response) => {
   const accountId = req.params.id;
   const updatedData = req.body;
 
-  try {
-    const account = await Account.findById(accountId);
-    if (!account) {
-      return res.status(204).json({ message: "Account not found" });
-    }
+  const account = accounts.find(
+    (acc) => acc.id === parseInt(accountId.toString())
+  );
 
-    const updatedAccount = await account.updateOne(updatedData);
+  if (account) {
+    account.username = updatedData.username ?? account.username;
+    account.funds = updatedData.funds ?? account.funds;
 
-    res.status(204).json(updatedAccount);
-  } catch (error) {
-    res.status(404).json({ message: "Error updating account", error });
+    res.status(200).json(account);
+  } else {
+    res.status(404).json({ message: "Account not found" });
   }
 };
 
-export const getAccountByUsername = async (req: Request, res: Response) => {
-  const username = req.params.username.toString().trim();
+export const getAccountByUsername = (req: Request, res: Response) => {
+  const username = req.params.username;
 
-  // console.log(Account.findOne({ username: username }));
+  const account = accounts.find((acc) => acc.username === username);
 
-  try {
-    const account = await Account.findOne({
-      username: new RegExp(`^${username}$`, "i"),
-    })
-      .select("-createdAt -updatedAt")
-      .lean();
-
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
+  if (account) {
     if (req.query.currency === "usd") {
       const usdFunds = account.funds * 0.27;
       return res.status(200).json({ ...account, funds: usdFunds });
     }
     res.status(200).json(account);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching account", error });
-  }
-};
-
-export const getVipAccounts = async (req: Request, res: Response) => {
-  try {
-    const allAccounts = await Account.find().select("-createdAt -updatedAt");
-    const vipAccounts = allAccounts.filter(
-      (account) => account.funds >= Number(req.query.amount)
-    );
-    res.status(200).json(vipAccounts);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching VIP accounts", error });
+  } else {
+    res.status(404).json({ message: "Account not found" });
   }
 };
